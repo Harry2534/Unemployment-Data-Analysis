@@ -3,10 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
 from statsmodels.tsa.stattools import adfuller
-
 from ARIMA import arima_fcst
-
-print(plt.style.available)
 import streamlit as st
 from statsmodels.tsa.arima.model import ARIMA
 
@@ -39,11 +36,52 @@ db.set_index('Date', inplace=True)
 db.rename(columns={'A84423620T': 'Unemployment Rate'}, inplace=True)
 db = db[['Unemployment Rate']]
 
+
 # Filter data within the desired date range
 Unemployment_Rate = db.loc["2011-01-01":"2023-12-01"]
 
+# Load and preprocess the data
+db = pd.read_excel("640101.xlsx", 'Data1', header=9).dropna(how='all')
+
+try:
+    # Convert the first column to datetime
+    db['Date'] = pd.to_datetime(db.iloc[:, 0], format='%b-%Y', errors='coerce')
+except Exception as e:
+    print(f"Error converting dates: {e}")
+
+# Drop rows with invalid dates and set index
+db.dropna(subset=['Date'], inplace=True)
+db.set_index('Date', inplace=True)
+
+# Rename and filter relevant columns
+db.rename(columns={'A2325846C': 'CPI'}, inplace=True)
+db = db[['CPI']]
+
+# Filter data within the desired date range
+Inflation = db.loc["2011-01-01":"2023-12-01"]
+
+# Load and preprocess the data
+db = pd.read_excel("f01d.xlsx", 'Data', header=10).dropna(how='all')
+
+try:
+    # Convert the first column to datetime
+    db['Date'] = pd.to_datetime(db.iloc[:, 0], format='%b-%Y', errors='coerce')
+except Exception as e:
+    print(f"Error converting dates: {e}")
+
+# Drop rows with invalid dates and set index
+db.dropna(subset=['Date'], inplace=True)
+db.set_index('Date', inplace=True)
+
+# Rename and filter relevant columns
+db.rename(columns={'FIRMMCRTD': 'CRT'}, inplace=True)
+db = db[['CRT']]
+
+# Filter data within the desired date range
+Interest_Rate = db.loc["2011-01-01":"2023-12-01"]
+
 # Layout: Three columns for insights, visualization, and decomposition
-col = st.columns((1, 4.5, 3), gap='medium')
+col = st.columns((1.1, 4.5, 3), gap='medium')
 
 with col[0]:
     st.subheader('Insights')
@@ -78,20 +116,30 @@ with col[0]:
     - Confidence intervals for the ARIMA forecast suggests we could potentially see a decline in unemployment rate but it more likely to surge higher.
     """)
 
-
-# Column 2: Visualization
 with col[1]:
-    filtered_data = Unemployment_Rate.loc['2012-01-01':'2024-12-31']
+    data1 = Unemployment_Rate.loc['2012-01-01':'2024-12-31']
+    data2 = Inflation.loc['2012-01-01':'2024-12-31']
+    data3 = Interest_Rate.loc['2012-01-01':'2024-12-31']
+
     fig, ax = plt.subplots(figsize=(12, 5))
-    ax.plot(filtered_data.index, filtered_data['Unemployment Rate'], color='#007ACC', linewidth=2,
-            label="Unemployment Rate")
-    ax.set_title('Unemployment Rate (2012-2024)', fontsize=16)
+
+    # Plot Unemployment Rate
+    ax.plot(data1.index, data1['Unemployment Rate'], color='#007ACC', linewidth=2, label="Unemployment Rate")
+
+    # Set titles and labels
+    ax.set_title('Unemployment Rate', fontsize=16)
     ax.set_ylabel('Rate (%)', fontsize=14)
     ax.set_xlabel('Date', fontsize=14)
+
+    # Add grid and legend
     ax.grid(color='gray', linestyle='--', linewidth=0.5, alpha=0.7)
     ax.legend(frameon=False, fontsize=12)
+
+    # Rotate x-axis labels and adjust layout
     plt.xticks(rotation=45)
     plt.tight_layout()
+
+    # Display the plot
     st.pyplot(fig)
 
     # Train ARIMA model
